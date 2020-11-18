@@ -97,9 +97,11 @@ if __name__ == "__main__":
         config = json.load(f)["config"]
         headers = config["headers"]
         settings = config["settings"]
-    if not (directory := settings["destination"]):
+    directory = settings["destination"]
+    if not directory:
         directory = os.getcwd()
-    if organize_files := settings["organize_files"]:
+    organize_files = settings["organize_files"]
+    if organize_files:
         video_extensions = settings["video_extensions"]
         image_extensions = settings["image_extensions"]
         gif_extensions = settings["gif_extensions"]
