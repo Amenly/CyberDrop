@@ -2,87 +2,113 @@ import os
 import sys
 import json
 import concurrent.futures
+import re
+import glob
+import shutil
 
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 
-def download_videos(url, title):
-    r = s.get(url)
-    if "/" in title:
-        title.replace("/", "_")
-    with open(os.path.join(album_name + "/Videos", title), "wb") as ww:
-        for chunk in r.iter_content(chunk_size=50000000):
-            ww.write(chunk)
-
-
-def download_images(url, title):
-    r = s.get(url)
-    if "/" in title:
-        title.replace("/", "_")
-    with open(os.path.join(album_name + "/Images", title), "wb") as ww:
-        for chunk in r.iter_content(chunk_size=50000000):
-            ww.write(chunk)
-
-
-def separator(urls, titles):
-    comparison = [".mp4", ".mov", "m4a", ".m4v",
-                  ".webm", ".flv", ".avi", ".wmv", ".qt"]
-    video_urls = []
-    video_titles = []
-    image_urls = []
-    image_titles = []
-    for _ in urls:
-        if any(x in _ for x in comparison):
-            video_urls.append(_)
-        else:
-            image_urls.append(_)
-    for _ in titles:
-        if any(x in _ for x in comparison):
-            video_titles.append(_)
-        else:
-            image_titles.append(_)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        if image_urls != []:
-            print(f"Downloading {len(image_urls)} images...")
-            os.mkdir(album_name + "/Images")
-            list(tqdm(executor.map(download_images, image_urls,
-                                   image_titles), total=len(image_urls)))
-        if video_urls != []:
-            print(f"Downloading {len(video_urls)} videos...")
-            os.mkdir(album_name + "/Videos")
-            list(tqdm(executor.map(download_videos, video_urls,
-                                   video_titles), total=len(video_urls)))
-        else:
-            print("No items detected. Is the album empty?")
-
-
-def start_session(url, header):
-    global s
+def scrape_url(url):
     with requests.Session() as s:
-        r = s.get(url, headers=header)
-        soup = BeautifulSoup(r.content, "lxml")
-        containers = soup.findAll("a", {"class": "image"})
-        content_urls = []
-        titles = []
-        for container in containers:
-            content_urls.append(container["href"])
-            titles.append(container["title"])
-        global album_name
-        album_name = soup.find("h1", {"id": "title"})["title"]
-        if "/" in album_name:
-            album_name.replace("/", "_")
-        os.mkdir(album_name)
-        print(f"Scraping '{album_name}'...")
-        separator(content_urls, titles)
+        r = s.get(url, headers=headers)
+    soup = BeautifulSoup(r.content, "lxml")
+    containers = soup.findAll("a", {"class": "image"})
+    file_urls = [container["href"] for container in containers]
+    if not file_urls:
+        return None
+    file_names = [container["title"] for container in containers]
+    timestamps = [int(container["data-timestamp"]) for container in containers]
+    combination = zip(file_urls, file_names, timestamps)
+    length = len(file_urls)
+    album_name = soup.find("h1", {"id": "title"})["title"]
+    album_name = text_replacement(album_name)
+    album_dir = directory + "/" + album_name
+    if os.path.isdir(album_dir):
+        pass
+    else:
+        os.mkdir(album_dir)
+    print(f"Scraping '{album_name}' with {length} files")
+    return combination, album_dir, length
 
 
-os.chdir(sys.path[0])
+def text_replacement(string):
+    pattern = re.compile(r'[.:/\\]')
+    new_string = pattern.sub("_", string)
+    return new_string
+
+
+def download_manager(tuples, length):
+    with tqdm(total=length, desc="Downloading...") as bar:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {executor.submit(download, tup): tup for tup in tuples}
+            for future in concurrent.futures.as_completed(futures):
+                future.result
+                bar.update(1)
+
+
+def download(tup):
+    with requests.Session() as s:
+        r = s.get(tup[0], headers=headers)
+    path = os.path.join(album_dir, tup[1])
+    with open(path, "wb") as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            f.write(chunk)
+    time = (tup[2], tup[2])
+    os.utime(path, time)
+
+
+def separator():
+    files_list = glob.glob(album_dir + "/*")
+    video_pattern = re.compile(fr'.+\.({video_extensions})', re.I)
+    video_matches = [re.finditer(video_pattern, file) for file in files_list]
+    video_files = [file.group() for match in video_matches for file in match]
+    if video_files:
+        videos_dir = os.path.join(album_dir, "Videos")
+        if not os.path.isdir(videos_dir):
+            os.mkdir(videos_dir)
+        for file in video_files:
+            shutil.move(file, videos_dir)
+    image_pattern = re.compile(fr'.+\.({image_extensions})', re.I)
+    image_matches = [re.finditer(image_pattern, file) for file in files_list]
+    image_files = [file.group() for match in image_matches for file in match]
+    if image_files:
+        images_dir = os.path.join(album_dir, "Images")
+        if not os.path.isdir(images_dir):
+            os.mkdir(images_dir)
+        for file in image_files:
+            shutil.move(file, images_dir)
+    gif_pattern = re.compile(fr'.+\.({gif_extensions})', re.I)
+    gif_matches = [re.finditer(gif_pattern, file) for file in files_list]
+    gif_files = [file.group() for match in gif_matches for file in match]
+    if gif_files:
+        gifs_dir = os.path.join(album_dir, "GIFs")
+        if not os.path.isdir(gifs_dir):
+            os.mkdir(gifs_dir)
+        for file in gif_files:
+            shutil.move(file, gifs_dir)
+
 
 if __name__ == "__main__":
-    url_input = input("Enter a CyberDrop album link below\n> ")
-    with open("config.json", "r") as config:
-        settings = json.load(config)["settings"]
-    start_session(url_input, settings)
-    print("Done")
+    config_file = sys.path[0] + "/config.json"
+    with open(config_file, "r") as f:
+        config = json.load(f)["config"]
+        headers = config["headers"]
+        settings = config["settings"]
+    if not (directory := settings["destination"]):
+        directory = os.getcwd()
+    if organize_files := settings["organize_files"]:
+        video_extensions = settings["video_extensions"]
+        image_extensions = settings["image_extensions"]
+        gif_extensions = settings["gif_extensions"]
+    url = input("Enter a CyberDrop album link below\n>>> ")
+    combination, album_dir, length = scrape_url(url)
+    if not combination:
+        print("There are no files in that album")
+    else:
+        download_manager(combination, length)
+        if organize_files:
+            separator()
+        print("Program successfully quit")
