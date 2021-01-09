@@ -1,46 +1,29 @@
 # CyberDrop Scraper
-Download images and videos from CyberDrop albums
+A command line tool written in Python for downloading images and videos from CyberDrop albums.
 
 Scraped files will retain their *original* filenames and exclude the name extension that CyberDrop slaps on the end of each file.
 
 
-![preview](images/preview.png)
-
-
 # Installation
 
-While in the project folder, go to your command line and run:
+To install it, run the following in your terminal:
 
-`pip install -r requirements.txt`
-
-or, if you're on macOS/Linux:
-
-`pip3 install -r requirements.txt`
+```sh
+$ pip install cyberdrop
+```
 
 # Usage
 
-While in the project folder, start the scraper by running the following in the command line:
+To use this, all you have to do is get a URL to an album and type the following in your terminal:
 
-`python cyberdrop.py`
+```sh
+$ cyberdrop url
+```
 
-or
+Example:
 
-`python3 cyberdrop.py`
+```sh
+$ cyberdrop https://cyberdrop.me/album/xxxxxxxx
+```
 
-The script will then ask you for a CyberDrop album link. Enter one after the `>>>` and then hit 'ENTER'.
-
-# Options
-
-The following options are accessible in the `config.json` file:
-
-`User-Agent`
-
-You can change the default user agent if you wish.
-
-`destination`
-
-You can specify a destination folder for downloaded content. If you don't specify one, CyberDrop albums will be saved in the current working directory.
-
-`organize_files`
-
-Set to `true` by default. If you set this to `false`, downloaded content won't be organized into subdirectories (e.g., "Images", "Videos", etc.)
+All files will be stored in a folder with the same name as the album in the current working directory.
