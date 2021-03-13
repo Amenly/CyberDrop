@@ -5,6 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
+    'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
@@ -12,11 +13,11 @@ CLASSIFIERS = [
     'Operating System :: OS Independent',
 ]
 
-REQUIREMENTS = ['requests', 'beautifulsoup4', 'lxml']
+REQUIREMENTS = ['requests', 'beautifulsoup4', 'lxml', 'win32-setctime']
 
 setuptools.setup(
     name='cyberdrop',
-    version='1.2.0',
+    version='1.2.1',
     author='Amenly',
     author_email='uamenly@protonmail.com',
     description='A command line tool written in Python for downloading images and videos from CyberDrop albums',
