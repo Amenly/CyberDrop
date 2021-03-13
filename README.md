@@ -1,4 +1,6 @@
 # CyberDrop Scraper
+![Python Version](https://img.shields.io/pypi/pyversions/cyberdrop) ![Version](https://img.shields.io/pypi/v/cyberdrop) ![Downloads](https://img.shields.io/pypi/dm/cyberdrop)
+
 A command line tool written in Python for downloading images and videos from CyberDrop albums.
 
 Scraped files will retain their *original* filenames and exclude the name extension that CyberDrop slaps on the end of each file.
