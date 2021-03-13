@@ -23,7 +23,7 @@ $ cyberdrop url
 Example:
 
 ```sh
-$ cyberdrop https://cyberdrop.me/album/xxxxxxxx
+$ cyberdrop https://cyberdrop.me/a/xxxxxxxx
 ```
 
 All files will be stored in a folder with the same name as the album in the current working directory.
