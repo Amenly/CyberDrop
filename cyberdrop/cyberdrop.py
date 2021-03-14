@@ -49,19 +49,23 @@ class CyberDrop:
             }
             for future in concurrent.futures.as_completed(futures):
                 future.result
+                self.count += 1
 
     def download(self, tupl):
         url, filename, timestamp = tupl
         with requests.Session() as s:
             r = s.get(url, headers=HEADERS)
-        path = self.check_path_exists(self.album_dir, filename)
-        with open(path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                f.write(chunk)
-        self.count += 1
-        if platform.system() == 'Windows':
-            setctime(path, timestamp)
-        os.utime(path, (timestamp, timestamp))
+        if r.ok:
+            path = self.check_path_exists(self.album_dir, filename)
+            with open(path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    f.write(chunk)
+            if platform.system() == 'Windows':
+                setctime(path, timestamp)
+            os.utime(path, (timestamp, timestamp))
+        else:
+            print(
+                f"STATUS CODE: {r.status_code} -- Unable to download '{url}'")
 
     @staticmethod
     def clean_text(string):
@@ -94,7 +98,6 @@ class CyberDrop:
                     f' {character} [{self.count}/{self.length}]', end='\r', flush=True)
                 time.sleep(0.1)
                 count += 1
-
 
 
 def main():
